@@ -111,7 +111,7 @@ const (
 	// PanAppID 百度网盘appid
 	PanAppID = "250528"
 	// NetdiskUA 网盘客户端ua
-	NetdiskUA = "netdisk;P2SP;3.0.0.8;netdisk;11.12.3;ANG-AN00;android-android;10.0;JSbridge4.4.0;jointBridge;1.1.0;"
+	NetdiskUA = "netdisk;12.17.66;23049PCD8G;android-android;13;JSbridge4.4.0;jointBridge;1.1.0;"
 	// DotBaiduCom .baidu.com
 	DotBaiduCom = ".baidu.com"
 	// PathSeparator 路径分隔符
@@ -163,7 +163,7 @@ type (
 	}
 )
 
-//UpdatePCSCookies 去除重名Cookies, 同名cookeis只保留最新的
+// UpdatePCSCookies 去除重名Cookies, 同名cookeis只保留最新的
 func (pcs *BaiduPCS) UpdatePCSCookies(reverse bool) {
 	cookies := pcs.GetClient().Jar.Cookies(baiduComURL)
 	new_cookies := make([]*http.Cookie, 0)
@@ -356,6 +356,20 @@ func (pcs *BaiduPCS) SetPCSUserAgent(ua string) {
 // SetPCSAddr 设置 PCS 服务器地址
 func (pcs *BaiduPCS) SetPCSAddr(addr string) {
 	pcs.pcsAddr = addr
+	cookies := pcs.client.Jar.Cookies(baiduComURL)
+	pcsCookies := make([]*http.Cookie, 0, len(cookies))
+	for _, v := range cookies {
+		ck := &http.Cookie{
+			Name:   v.Name,
+			Value:  v.Value,
+			Domain: addr,
+		}
+		pcsCookies = append(pcsCookies, ck)
+	}
+	pcs.client.Jar.SetCookies(&url.URL{
+		Scheme: "http",
+		Host:   addr,
+	}, pcsCookies)
 }
 
 // SetPanUserAgent 设置 Pan User-Agent

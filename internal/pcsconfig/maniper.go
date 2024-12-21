@@ -83,7 +83,7 @@ func (c *PCSConfig) manipUser(op string, baiduBase *BaiduBase) (*Baidu, error) {
 	return nil, ErrBaiduUserNotFound
 }
 
-//setupNewUser 从已有用户中, 设置新的当前登录用户
+// setupNewUser 从已有用户中, 设置新的当前登录用户
 func (c *PCSConfig) setupNewUser(user *Baidu) {
 	if user == nil {
 		return
@@ -206,7 +206,7 @@ func (c *PCSConfig) SetPanUA(panUA string) {
 
 // SetPCSAddr 设置 PCS 服务器地址
 func (c *PCSConfig) SETPCSAddr(pcsaddr string) bool {
-	match, _ := regexp.MatchString("^([cd]\\d?\\.)?pcs\\.baidu\\.com", pcsaddr)
+	match, _ := regexp.MatchString(".", pcsaddr)
 	if match {
 		c.PCSAddr = pcsaddr
 		if c.pcs != nil {
@@ -254,3 +254,4 @@ func (c *PCSConfig) SetIgnoreIllegal(ignore bool) {
 func (c *PCSConfig) SetForceLogin(username string) {
 	c.ForceLogin = username
 }
+
