@@ -17,7 +17,7 @@ const (
 	// MiddleUploadBlockSize 上传的文件分片中等大小
 	MiddleUploadBlockSize = 16 * converter.MB
 	// MinUploadBlockSize 上传的文件分片最小大小
-	MinUploadBlockSize = 4 * converter.MB
+	MinUploadBlockSize = 16 * converter.MB
 	// RecommendedUploadSize 推荐的最高文件上传大小
 	RecommendedUploadSize = 32 * converter.GB
 	// MaxUploadSize 目前支持的最大文件大小

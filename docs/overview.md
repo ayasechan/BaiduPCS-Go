@@ -59,6 +59,16 @@ Cookie 域固定为 `.baidu.com`。`baidupcs/publicsuffix.go` 把 `*.baidu.com` 
 - 网盘（pan）类请求使用配置项 `PanUA`，默认值为 `NetdiskUA`（一个 netdisk 客户端 UA 串）。
 - 部分网页接口（分享转存）显式覆盖为浏览器 UA 或 netdisk UA。
 
+### HTTP 版本与连接复用
+
+所有请求经 `requester.HTTPClient` 发出，其 `http.Transport` 定义于 `requester/http_client.go`。
+
+传输层只使用 HTTP/1.1。TLS 握手时百度各主机（`pcs.baidu.com`、`pan.baidu.com`、`d.pcs.baidu.com`、`c*.pcs.baidu.com`）通过 ALPN 一律协商为 `http/1.1`；即使客户端通告 `h2` 亦如此。因此 `ForceAttemptHTTP2` 不参与协议选择：该字段的唯一作用是在显式设置了 `Proxy`、`DialContext` 或 `TLSClientConfig` 时保留库默认的 HTTP/2 启用策略，而此处三项均已设置且服务端不提供 h2，实际结果恒为 HTTP/1.1。
+
+HTTP/1.1 下一条连接同时只能承载一个请求，故指向同一主机的 n 个并发请求需要 n 条 TCP 连接（服务端和客户端均不支持多路复用）。连接池上限为 `MaxIdleConnsPerHost` = 60。
+
+连接复用遵循 Go 传输层规则：只有响应体被读到 EOF，连接才被回收；未读完即 `Close` 会关闭而非复用连接。`requester/fetch.go` 的 `Req` 直接返回 `*http.Response`，是否读完由调用方决定。
+
 ## 响应与错误
 
 三类接口返回的错误结构不同，程序分别解析：
