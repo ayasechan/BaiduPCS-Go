@@ -253,6 +253,33 @@ func (pcs *BaiduPCS) FilesDirectoriesList(path string, options *OrderOptions) (d
 	return
 }
 
+// FilesDirectoriesSize 递归统计目录下所有文件的体积总和, 目录自身不计入
+//
+// 列表接口不返回目录大小, 需逐层调用接口累加子孙文件, 子目录较多时开销较大
+func (pcs *BaiduPCS) FilesDirectoriesSize(path string, options *OrderOptions) (size int64, pcsError pcserror.Error) {
+	fdl, pcsError := pcs.FilesDirectoriesList(path, options)
+	if pcsError != nil {
+		return 0, pcsError
+	}
+
+	for _, fd := range fdl {
+		if fd == nil {
+			continue
+		}
+		if !fd.Isdir {
+			size += fd.Size
+			continue
+		}
+
+		subSize, pcsError := pcs.FilesDirectoriesSize(fd.Path, options)
+		if pcsError != nil {
+			return 0, pcsError
+		}
+		size += subSize
+	}
+	return
+}
+
 // Search 按文件名搜索文件, 不支持查找目录
 func (pcs *BaiduPCS) Search(targetPath, keyword string, recursive bool) (fdl FileDirectoryList, pcsError pcserror.Error) {
 	if targetPath == "" {

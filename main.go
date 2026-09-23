@@ -724,6 +724,9 @@ func main() {
 	按文件大小降序排序
 	BaiduPCS-Go ls -size -desc 我的资源
 
+	显示目录体积
+	BaiduPCS-Go ls -ds 我的资源
+
 	使用通配符
 	BaiduPCS-Go ls /我的*
 `,
@@ -752,7 +755,8 @@ func main() {
 				}
 
 				pcscommand.RunLs(c.Args().Get(0), &pcscommand.LsOptions{
-					Total: c.Bool("l") || c.Parent().Args().Get(0) == "ll",
+					Total:   c.Bool("l") || c.Parent().Args().Get(0) == "ll",
+					DirSize: c.Bool("ds"),
 				}, orderOptions)
 
 				return nil
@@ -781,6 +785,10 @@ func main() {
 				cli.BoolFlag{
 					Name:  "size",
 					Usage: "根据大小排序",
+				},
+				cli.BoolFlag{
+					Name:  "ds",
+					Usage: "显示目录体积(递归统计, 目录较多时较慢)",
 				},
 			},
 		},

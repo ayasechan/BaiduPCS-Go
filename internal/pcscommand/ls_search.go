@@ -14,7 +14,8 @@ import (
 type (
 	// LsOptions 列目录可选项
 	LsOptions struct {
-		Total bool
+		Total   bool
+		DirSize bool // 递归统计并显示目录体积
 	}
 
 	// SearchOptions 搜索可选项
@@ -49,7 +50,23 @@ func RunLs(pcspath string, lsOptions *LsOptions, orderOptions *baidupcs.OrderOpt
 		lsOptions = &LsOptions{}
 	}
 
-	renderTable(opLs, lsOptions.Total, pcspath, files)
+	var dirSizes map[int64]int64
+	if lsOptions.DirSize {
+		dirSizes = make(map[int64]int64, len(files))
+		for _, file := range files {
+			if file == nil || !file.Isdir {
+				continue
+			}
+			size, err := GetBaiduPCS().FilesDirectoriesSize(file.Path, baidupcs.DefaultOrderOptions)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "统计目录体积失败: %s, %s\n", file.Path, err)
+				continue
+			}
+			dirSizes[file.FsID] = size
+		}
+	}
+
+	renderTable(opLs, lsOptions.Total, pcspath, files, dirSizes)
 	return
 }
 
@@ -71,11 +88,20 @@ func RunSearch(targetPath, keyword string, opt *SearchOptions) {
 		return
 	}
 
-	renderTable(opSearch, opt.Total, targetPath, files)
+	renderTable(opSearch, opt.Total, targetPath, files, nil)
 	return
 }
 
-func renderTable(op int, isTotal bool, path string, files baidupcs.FileDirectoryList) {
+// dirSizeStr 返回目录体积字符串, 未统计到则返回 "-"
+func dirSizeStr(fsID int64, dirSizes map[int64]int64) string {
+	size, ok := dirSizes[fsID]
+	if !ok {
+		return "-"
+	}
+	return converter.ConvertFileSize(size, 2)
+}
+
+func renderTable(op int, isTotal bool, path string, files baidupcs.FileDirectoryList, dirSizes map[int64]int64) {
 	tb := pcstable.NewTable(os.Stdout)
 	var (
 		fN, dN   int64
@@ -94,7 +120,7 @@ func renderTable(op int, isTotal bool, path string, files baidupcs.FileDirectory
 		tb.SetColumnAlignment([]int{tablewriter.ALIGN_DEFAULT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT})
 		for k, file := range files {
 			if file.Isdir {
-				tb.Append([]string{strconv.Itoa(k), strconv.FormatInt(file.FsID, 10), strconv.FormatInt(file.AppID, 10), "-", pcstime.FormatTime(file.Ctime), pcstime.FormatTime(file.Mtime), file.MD5, file.Filename + baidupcs.PathSeparator})
+				tb.Append([]string{strconv.Itoa(k), strconv.FormatInt(file.FsID, 10), strconv.FormatInt(file.AppID, 10), dirSizeStr(file.FsID, dirSizes), pcstime.FormatTime(file.Ctime), pcstime.FormatTime(file.Mtime), file.MD5, file.Filename + baidupcs.PathSeparator})
 				continue
 			}
 
@@ -119,7 +145,7 @@ func renderTable(op int, isTotal bool, path string, files baidupcs.FileDirectory
 		tb.SetColumnAlignment([]int{tablewriter.ALIGN_DEFAULT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT})
 		for k, file := range files {
 			if file.Isdir {
-				tb.Append([]string{strconv.Itoa(k), "-", pcstime.FormatTime(file.Mtime), file.Filename + baidupcs.PathSeparator})
+				tb.Append([]string{strconv.Itoa(k), dirSizeStr(file.FsID, dirSizes), pcstime.FormatTime(file.Mtime), file.Filename + baidupcs.PathSeparator})
 				continue
 			}
 
