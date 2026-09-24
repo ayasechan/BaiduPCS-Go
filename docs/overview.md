@@ -1,6 +1,6 @@
 # 概述
 
-本项目通过 HTTP 调用百度 PCS 与百度网盘接口。所有请求共用同一套 `net/http/cookiejar`，由 Cookie 完成身份认证；极少数接口使用独立的请求签名。
+本项目通过 HTTP 调用百度 PCS 与百度网盘接口。身份认证由 `net/http/cookiejar` 完成 Cookie 存取，极少数接口使用独立的请求签名。
 
 ## 身份认证
 
@@ -24,7 +24,9 @@
 - `SetStoken` / `SetSboxtkn` 追加对应 Cookie；
 - 若使用完整 `COOKIES`，则 `NewPCSWithCookieStr` 解析整串，并把每个 Cookie 的 Domain 统一设为 `.baidu.com`。
 
-Cookie 域固定为 `.baidu.com`。`baidupcs/publicsuffix.go` 把 `*.baidu.com` 的公有后缀视为 `com`，使 `baidu.com` 成为可注册域，Cookie 因而能下发给 `pcs.baidu.com`、`pan.baidu.com`、`d.pcs.baidu.com` 等子域。
+Cookie 域固定为 `.baidu.com`。Cookie jar 以 `cookiejar.New(nil)` 创建，未提供公有后缀表：此时 jar 以 `host` 中最后一个 `.` 之前的部分作为键（`baidu.com`），故写入 `baidu.com` 的 Cookie 可下发给 `pcs.baidu.com`、`pan.baidu.com`、`d.pcs.baidu.com` 等同级子域。
+
+下载时若直链主机与 `pcs.baidu.com` 不同，`pcdownload.CloneJarWithDomain` 会新建一个使用 `golang.org/x/net/publicsuffix` 的 jar，把原 jar 中 `pcs.baidu.com` 的 Cookie 复制到直链主机域名下（`internal/pcsfunctions/pcsdownload/utils.go`）。
 
 ### access_token
 
@@ -63,7 +65,7 @@ Cookie 域固定为 `.baidu.com`。`baidupcs/publicsuffix.go` 把 `*.baidu.com` 
 
 所有请求经 `requester.HTTPClient` 发出，其 `http.Transport` 定义于 `requester/http_client.go`。
 
-传输层只使用 HTTP/1.1。TLS 握手时百度各主机（`pcs.baidu.com`、`pan.baidu.com`、`d.pcs.baidu.com`、`c*.pcs.baidu.com`）通过 ALPN 一律协商为 `http/1.1`；即使客户端通告 `h2` 亦如此。因此 `ForceAttemptHTTP2` 不参与协议选择：该字段的唯一作用是在显式设置了 `Proxy`、`DialContext` 或 `TLSClientConfig` 时保留库默认的 HTTP/2 启用策略，而此处三项均已设置且服务端不提供 h2，实际结果恒为 HTTP/1.1。
+传输层只使用 HTTP/1.1。Transport 显式设置了 `DialContext` 与 `TLSClientConfig`，且 `ForceAttemptHTTP2` 为默认值 `false`；据 `net/http` 的协议选择逻辑，此时不会自动启用 HTTP/2，`NextProtos` 不加入 `h2`，客户端在 TLS 握手中不通告 HTTP/2。
 
 HTTP/1.1 下一条连接同时只能承载一个请求，故指向同一主机的 n 个并发请求需要 n 条 TCP 连接（服务端和客户端均不支持多路复用）。连接池上限为 `MaxIdleConnsPerHost` = 60。
 
@@ -75,9 +77,10 @@ HTTP/1.1 下一条连接同时只能承载一个请求，故指向同一主机�
 
 | 接口类型 | 错误字段 | 解析位置 |
 | :- | :- | :- |
-| PCS | `error_code` / `error_msg` / `request_id` | `baidupcs/pcserror/pcserrorinfo.go` |
+| PCS | `error_code` / `error_msg` | `baidupcs/pcserror/pcserrorinfo.go` |
 | pan | `errno` | `baidupcs/pcserror/panerrorinfo.go` |
-| xpan | `errno` / `return_type` | `baidupcs/pcserror/xpanerrorinfo.go` |
+
+另有 `XPanErrorInfo`（`baidupcs/pcserror/xpanerrorinfo.go`，字段 `errno` / `return_type`）及其解码函数 `DecodeXPanJSONError`，但当前无调用点：旧版秒传的 `xpan/file?method=create` 响应以 PCS 结构解析（`RapidUploadNoCheckDir`）。秒传结果字段 `return_type` 实际由网盘接口 `api/precreate` 返回（`PrepareRapidUploadV2`、`prepareFakeRapidUploadV2`），并非 xpan 接口。
 
 错误码含义见 [errors.md](./errors.md)。
 

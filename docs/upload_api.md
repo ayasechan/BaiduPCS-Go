@@ -8,9 +8,10 @@
 
 | 文件大小 | 分片大小 |
 | :- | :- |
-| < 8 GB | 4 MB |
-| 8 GB ~ 32 GB | 16 MB |
+| < 32 GB | 16 MB |
 | >= 32 GB | 64 MB |
+
+最小与中等分片同为 16 MB（`MinUploadBlockSize` 与 `MiddleUploadBlockSize` 相等），阈值为 32 GB。
 
 单个文件上限 128 GB。
 
@@ -22,6 +23,7 @@
 
 | 参数 | 说明 |
 | :- | :- |
+| `uploadid` | 上传 ID。仅在断点续传时携带，首次上传不发送 |
 | `path` | 目标绝对路径 |
 | `target_path` | 目标所在目录（以 `/` 结尾） |
 | `size` | 文件总大小 |
@@ -93,6 +95,10 @@
 | `block_list` | 各分片 MD5 列表，JSON 数组 |
 | `target_path` | 目标所在目录 |
 
+## 单文件上传（未使用）
+
+`pcs.baidu.com/rest/2.0/pcs/file?method=upload` 有两个已定义但未被上传流程调用的变体：`PrepareUpload`（query 含 `path`、`ondup`）与 `PrepareUploadTmpFile`（query 含 `type=tmpfile`）。
+
 ## 旧版秒传
 
 - 方法：POST
@@ -105,13 +111,9 @@
 | `path` | 目标绝对路径 |
 | `size` | 文件大小 |
 | `isdir` | 固定 `0` |
-| `rtype` | 重名策略：`2` 跳过，`3` 覆盖 |
+| `rtype` | 固定 `3`（覆盖） |
 
 此为唯一使用 `access_token` 的接口，需先以 `setastoken` 设置。
-
-## 单文件上传（未使用）
-
-`pcs.baidu.com/rest/2.0/pcs/file?method=upload`（query 含 `path`、`ondup`）在代码中保留但未被调用。
 
 ## 重名策略
 

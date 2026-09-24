@@ -2,9 +2,7 @@
 
 分享使用 `pan.baidu.com/share/*` 接口；转存通过访问分享页、校验提取码、列出分享项、提交转存四步完成。转存依赖登录凭据中包含网盘 `STOKEN`。
 
-## 获取 bdstoken
-
-分享、转存所需的 `bdstoken` 亦可由此接口取得。
+## 获取 bdstoken（未使用）
 
 - 方法：GET
 - URL：`https://pan.baidu.com/api/gettemplatevariable`
@@ -12,10 +10,10 @@
 | 参数 | 说明 |
 | :- | :- |
 | `clienttype` | 固定 `0` |
-| `app_id` | 见 [overview.md](./overview.md#app_id) |
+| `app_id` | `string(Config.AppID)`，即配置项 `AppID` 的整型转 rune |
 | `fields` | 固定 `["bdstoken"]` |
 
-返回 `result.bdstoken`。
+返回 `result.bdstoken`。由 `PrepareBDStoken` / `BDSToken` 实现，但转存流程并不调用它，`bdstoken` 全部来自分享页解析。
 
 ## 创建分享
 
@@ -101,7 +99,6 @@
 | :- | :- |
 | `app_id` | `250528` |
 | `channel` | `chunlei` |
-| `clienttype` | `0` |
 | `web` | `5` |
 | `root` | `1` |
 | `shorturl` | 分享标识 |
@@ -114,6 +111,8 @@
 - 方法：POST
 - URL：`https://pan.baidu.com/share/transfer`
 
+query 参数除下列固定项外，还包括分享页解析所得的 `shareid`、`from`、`bdstoken`、`filename`。
+
 | 参数 | 位置 | 说明 |
 | :- | :- | :- |
 | `app_id` | query | `250528` |
@@ -123,5 +122,6 @@
 | `shareid` | query | 分享 ID |
 | `from` | query | 分享者 uk |
 | `bdstoken` | query | 分享页解析所得 |
+| `filename` | query | 分享项文件名 |
 | `fsidlist` | body | 待转存 `fs_id` 列表，JSON 数组 |
 | `path` | body | 转存目标目录 |

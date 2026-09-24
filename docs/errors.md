@@ -4,7 +4,7 @@
 
 ## PCS error_code
 
-PCS 接口返回 `error_code`（部分由程序改写为更明确的中文提示，标注于备注）。
+PCS 接口返回 `error_code` / `error_msg`。程序仅在 `findPCSErr`（`baidupcs/pcserror/pcserrorinfo.go`）中对 `0`、`31045`、`31061`、`31066`、`31079` 五个错误码返回定制提示（`0` 返回空串），其余表项为 PCS 错误码参考，未在代码中逐一映射。
 
 | HTTP状态码 | 错误码 | 错误信息 | 备注 |
 | :- | -: | :- | :- |
@@ -126,4 +126,4 @@ pan 接口返回 `errno`，含义由 `baidupcs/pcserror/panerrorinfo.go` 的 `Fi
 
 ## xpan errno / return_type
 
-xpan 接口（`xpan/file`）返回 `errno` 与 `return_type`。预创建场景下 `return_type == 2` 表示秒传命中。程序对未知组合统一下发"错误类型: N"提示，见 `baidupcs/pcserror/xpanerrorinfo.go`。
+`XPanErrorInfo`（`baidupcs/pcserror/xpanerrorinfo.go`）以 `errno` / `return_type` 解析错误，`return_type == 2` 视为成功，未知组合下发"错误类型: N"提示。该类型及其解码函数 `DecodeXPanJSONError` 当前无调用点：秒传的 `return_type` 由 `uploadPrecreateJSON`（`baidupcs/upload.go`）解析自网盘接口 `api/precreate`，`return_type == 2` 表示秒传命中。

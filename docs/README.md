@@ -9,4 +9,4 @@
 - [分享与转存](./share_api.md) — 创建/取消/列出分享、转存
 - [离线下载](./offline_dl_api.md) — cloud_dl 系列
 - [回收站](./recycle_api.md) — 列出、还原、删除、清空
-- [错误码](./errors.md) — PCS error_code、pan errno、xpan errno
+- [错误码](./errors.md) — PCS error_code、pan errno、xpan errno（xpan 未启用）
